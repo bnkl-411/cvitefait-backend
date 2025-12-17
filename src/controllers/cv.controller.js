@@ -8,6 +8,7 @@ import { saveCvService } from '../services/saveCv.service.js'
 import { getMyCvService } from '../services/getMyCv.service.js'
 import { deleteMyCvService } from '../services/deleteMyCv.service.js'
 
+
 /**
  * POST /api/cv/pdf
  */
