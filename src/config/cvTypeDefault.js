@@ -127,7 +127,7 @@ export const cvTypeDefault =
             "textAlign": "justify"
         },
         "fontSize": {
-            "username": "21",
+            "fullName": "21",
             "lookupJob": "16",
             "resume": "11"
         }

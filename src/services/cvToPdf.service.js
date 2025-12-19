@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer'
 import { JWT_CONFIG } from '../config/jwt.js'
 
-export const generateCvPdf = async ({ token, url, localStorageData }) => {
+export const generateCvPdf = async ({ token, url, localStorageData, fullName }) => {
     if (!token || !url) {
         throw Object.assign(
             new Error('Paramètres manquants'),
@@ -52,13 +52,20 @@ export const generateCvPdf = async ({ token, url, localStorageData }) => {
         }
 
         await page.evaluate(() => document.fonts.ready)
+
+        await page.evaluate((title) => {
+            document.title = title
+        }, `CV-${fullName}`)
+
         await page.emulateMediaType('print')
 
         const pdfBuffer = await page.pdf({
             format: 'A4',
             printBackground: true,
             preferCSSPageSize: true,
-            scale: 2
+            metadata: {
+                author: 'CVitefait'
+            }
         })
 
         return pdfBuffer

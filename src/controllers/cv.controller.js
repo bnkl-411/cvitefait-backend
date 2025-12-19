@@ -7,6 +7,7 @@ import { findCvBySlugService } from '../services/findCvBySlug.service.js'
 import { saveCvService } from '../services/saveCv.service.js'
 import { getMyCvService } from '../services/getMyCv.service.js'
 import { deleteMyCvService } from '../services/deleteMyCv.service.js'
+import { storePdf } from '../services/pdfStorage.service.js'
 
 
 /**
@@ -14,14 +15,21 @@ import { deleteMyCvService } from '../services/deleteMyCv.service.js'
  */
 export const cvToPdf = async (req, res, next) => {
     const token = req.cookies?.[JWT_CONFIG.cookie.name]
-    const { url, localStorage } = req.body
+    const { url, localStorage, fullName, action } = req.body
 
     try {
         const pdfBuffer = await generateCvPdf({
             token,
             url,
-            localStorageData: localStorage
+            localStorageData: localStorage,
+            fullName
         })
+
+        if (action === 'store') {
+            const baseUrl = `${req.protocol}://${req.get('host')}`
+            const fileUrl = await storePdf(pdfBuffer, fullName, baseUrl)
+            return res.json({ url: fileUrl })
+        }
 
         res.set({
             'Content-Type': 'application/pdf',
@@ -41,7 +49,7 @@ export const cvToPdf = async (req, res, next) => {
  * POST /api/cv
  */
 export const createCv = async (req, res, next) => {
-    const { firstName, lastName, email, template } = req.body
+    const { firstName, lastName, email } = req.body
     const userId = req.userId
 
     if (!firstName || !lastName) {
@@ -53,8 +61,7 @@ export const createCv = async (req, res, next) => {
             userId,
             firstName,
             lastName,
-            email,
-            template
+            email
         })
 
         const token = jwt.sign(

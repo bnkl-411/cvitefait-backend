@@ -7,8 +7,7 @@ export const createCvService = async ({
     userId,
     firstName,
     lastName,
-    email,
-    template
+    email
 }) => {
     return withTransaction(async (client) => {
         const existingCv = await findUserCv(client, userId)
@@ -35,8 +34,6 @@ export const createCvService = async ({
 
         const fullName = userCvData.cv.personal.find(item => item.key === 'fullName')
         if (fullName) fullName.value = firstName + ' ' + lastName
-
-        userCvData.configuration.template = template
 
         const cvInsert = await insertCv(client, {
             userId,
