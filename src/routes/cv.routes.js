@@ -1,13 +1,13 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middlewares/auth.js'
 import {
-    cvToPdf,
     createCv,
     findCvBySlug,
     saveCv,
     getMyCv,
     deleteMyCv
 } from '../controllers/cv.controller.js'
+import { cvToPdf } from '../controllers/pdf.controller.js'
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit'
 
 

@@ -1,8 +1,8 @@
 import puppeteer from 'puppeteer'
 import { JWT_CONFIG } from '../config/jwt.js'
 
-export const generateCvPdf = async ({ token, url, localStorageData, fullName }) => {
-    if (!token || !url) {
+export const generateCvPdf = async ({ token, slug, url, localStorageData, fullName, cvReadySelector = '#experiences' }) => {
+    if (!token || !url || !localStorageData) {
         throw Object.assign(
             new Error('Paramètres manquants'),
             { status: 400 }
@@ -10,17 +10,13 @@ export const generateCvPdf = async ({ token, url, localStorageData, fullName }) 
     }
 
     let browser
-    let page
-
     try {
         browser = await puppeteer.launch({
             headless: 'new',
             args: ['--no-sandbox', '--disable-setuid-sandbox']
         })
 
-        page = await browser.newPage()
-        page.setDefaultTimeout(15000)
-        page.setDefaultNavigationTimeout(15000)
+        const page = await browser.newPage()
 
         await page.setViewport({
             width: 794,
@@ -28,7 +24,8 @@ export const generateCvPdf = async ({ token, url, localStorageData, fullName }) 
             deviceScaleFactor: 3
         })
 
-        await browser.setCookie({
+        // Configuration du cookie d'authentification
+        await page.setCookie({
             name: JWT_CONFIG.cookie.name,
             value: token,
             domain: 'localhost',
@@ -38,28 +35,41 @@ export const generateCvPdf = async ({ token, url, localStorageData, fullName }) 
             sameSite: 'Lax'
         })
 
+        // Écoute de la réponse d'authentification
+        const authPromise = page.waitForResponse(
+            response => response.url().includes('/api/auth/me') && response.status() === 200,
+            { timeout: 10000 }
+        )
+
         await page.goto(url, { waitUntil: 'domcontentloaded' })
 
-        if (localStorageData) {
-            const urlObj = new URL(url)
-            const slug = urlObj.pathname.split('/').pop()
+        // Vérification de l'authentification
+        await authPromise
 
-            await page.evaluate((slug, data) => {
-                localStorage.setItem(slug, data)
-            }, slug, localStorageData)
+        // Injection du localStorage
+        await page.evaluate((slug, data) => {
+            localStorage.setItem(slug, data)
+        }, slug, localStorageData)
 
-            await page.reload({ waitUntil: 'domcontentloaded' })
-        }
+        await page.reload({ waitUntil: 'domcontentloaded' })
 
+        // Attente du chargement complet du CV
+        await page.waitForSelector(cvReadySelector, {
+            timeout: 10000,
+            visible: true
+        })
+
+        // Attente des polices
         await page.evaluate(() => document.fonts.ready)
 
+        // Configuration du PDF
         await page.evaluate((title) => {
             document.title = title
         }, `CV-${fullName}`)
 
         await page.emulateMediaType('print')
 
-        const pdfBuffer = await page.pdf({
+        return await page.pdf({
             format: 'A4',
             printBackground: true,
             preferCSSPageSize: true,
@@ -68,10 +78,18 @@ export const generateCvPdf = async ({ token, url, localStorageData, fullName }) 
             }
         })
 
-        return pdfBuffer
-
+    } catch (error) {
+        if (error.message.includes('waiting for selector')) {
+            throw Object.assign(
+                new Error('Le CV n\'a pas terminé de charger'),
+                { status: 408 }
+            )
+        }
+        throw Object.assign(
+            new Error(error.message || 'Erreur lors de la génération du PDF'),
+            { status: error.status || 500 }
+        )
     } finally {
-        if (page) await page.close().catch(() => { })
         if (browser) await browser.close().catch(() => { })
     }
 }

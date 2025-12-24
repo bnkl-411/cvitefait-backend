@@ -2,6 +2,7 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { connectRedis } from './db/redis.js';
 
 import cors from 'cors'
 import routes from './routes/index.js'
@@ -19,12 +20,13 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }))
 
+await connectRedis();
+
 app.use(cookieParser())
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 console.log('Dossier uploads monté sur /uploads')
 console.log('Chemin absolu:', path.join(__dirname, 'uploads'))
-
 
 app.get('/health', (req, res) => {
   res.json({

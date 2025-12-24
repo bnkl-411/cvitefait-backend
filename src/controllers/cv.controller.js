@@ -1,55 +1,16 @@
-import jwt from 'jsonwebtoken'
-import puppeteer from 'puppeteer'
-import { JWT_CONFIG } from '../config/jwt.js'
-import { generateCvPdf } from '../services/cvToPdf.service.js'
 import { createCvService } from '../services/createCv.service.js'
 import { findCvBySlugService } from '../services/findCvBySlug.service.js'
 import { saveCvService } from '../services/saveCv.service.js'
 import { getMyCvService } from '../services/getMyCv.service.js'
 import { deleteMyCvService } from '../services/deleteMyCv.service.js'
-import { storePdf } from '../services/pdfStorage.service.js'
-
-
-/**
- * POST /api/cv/pdf
- */
-export const cvToPdf = async (req, res, next) => {
-    const token = req.cookies?.[JWT_CONFIG.cookie.name]
-    const { url, localStorage, fullName, action } = req.body
-
-    try {
-        const pdfBuffer = await generateCvPdf({
-            token,
-            url,
-            localStorageData: localStorage,
-            fullName
-        })
-
-        if (action === 'store') {
-            const baseUrl = `${req.protocol}://${req.get('host')}`
-            const fileUrl = await storePdf(pdfBuffer, fullName, baseUrl)
-            return res.json({ url: fileUrl })
-        }
-
-        res.set({
-            'Content-Type': 'application/pdf',
-            'Content-Disposition': 'attachment; filename=cv.pdf',
-            'Content-Length': pdfBuffer.length
-        })
-
-        res.send(pdfBuffer)
-
-    } catch (error) {
-        console.error('Erreur génération PDF :', error)
-        next(error)
-    }
-}
+import { JWT_CONFIG } from '../config/jwt.js'
+import jwt from 'jsonwebtoken'
 
 /**
- * POST /api/cv
+ * POST /api/cv/create
  */
 export const createCv = async (req, res, next) => {
-    const { firstName, lastName, email } = req.body
+    const { firstName, lastName, email } = req.body || {}
     const userId = req.userId
 
     if (!firstName || !lastName) {

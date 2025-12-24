@@ -20,6 +20,7 @@ export const insertCv = (client, params) => {
     })
 }
 
+// TODO  : chercher dans pdf_exports et return le fichier
 export const findCvBySlug = (client, slug) => {
 
     return client.query({
