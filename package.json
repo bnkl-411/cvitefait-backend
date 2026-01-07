@@ -12,7 +12,9 @@
     "start": "node src/server.js"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.964.0",
     "@google/genai": "^1.30.0",
+    "@vue/server-renderer": "^3.5.26",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -26,6 +28,7 @@
     "puppeteer": "^24.33.0",
     "redis": "^5.10.0",
     "sqlite3": "^5.1.7",
+    "vue": "^3.5.26",
     "winston": "^3.18.3"
   },
   "devDependencies": {

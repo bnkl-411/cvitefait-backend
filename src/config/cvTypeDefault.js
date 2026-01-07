@@ -19,7 +19,7 @@ export const cvTypeDefault =
             },
             {
                 "key": "job",
-                "value": "Chargée de marketing digital",
+                "value": "Chargé de marketing digital",
                 "required": true
             },
             {
@@ -71,10 +71,10 @@ export const cvTypeDefault =
             }
         ],
         "hobbies": "Musique électronique, veille tech, growth hacking, voyage",
-        "resume": "Passionnée de communication numérique, j'aide les marques à accroître leur visibilité grâce à des stratégies data-driven et créatives.",
+        "resume": "Passionné de communication numérique, j'aide les marques à accroître leur visibilité grâce à des stratégies data-driven et créatives.",
         "jobs": [
             {
-                "job": "Chargée de marketing digital",
+                "job": "Chargé de marketing digital",
                 "period": "2023-2025",
                 "extraInfo": "Agence WebPulse",
                 "description": "Pilotage de campagnes publicitaires multicanales, analyse de données et optimisation SEO/SEA."
@@ -86,7 +86,7 @@ export const cvTypeDefault =
                 "description": "Création de contenus, gestion des réseaux sociaux, reporting et suivi des performances."
             },
             {
-                "job": "Chargée de communication digitale",
+                "job": "Chargé de communication digitale",
                 "period": "2021-2022",
                 "extraInfo": "Agence NovaCom",
                 "description": "Production de contenus web, optimisation SEO, gestion de newsletters et suivi des indicateurs de performance."

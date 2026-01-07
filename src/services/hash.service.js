@@ -7,10 +7,18 @@ import crypto from 'crypto'
  * @returns {string} hash court
  */
 export const generateHash = (localStorageData, url) => {
+    console.log('[Hash] Génération hash')
+    console.log('[Hash] URL:', url)
+    console.log('[Hash] LocalStorage length:', localStorageData.length)
+
     const hash = crypto
         .createHash('sha256')
         .update(localStorageData)
         .update(url)
         .digest('hex')
-    return hash.slice(0, 8)
+
+    const shortHash = hash.slice(0, 8)
+    console.log('[Hash] ✓ Hash généré:', shortHash)
+
+    return shortHash
 }

@@ -69,7 +69,7 @@ export const generateCvPdf = async ({ token, slug, url, localStorageData, fullNa
 
         await page.emulateMediaType('print')
 
-        return await page.pdf({
+        const pdfResult = await page.pdf({
             format: 'A4',
             printBackground: true,
             preferCSSPageSize: true,
@@ -77,6 +77,30 @@ export const generateCvPdf = async ({ token, slug, url, localStorageData, fullNa
                 author: 'CVitefait'
             }
         })
+
+        // Conversion en Buffer si nécessaire (Puppeteer peut retourner Uint8Array, ArrayBuffer, etc.)
+        let pdfBuffer
+        if (Buffer.isBuffer(pdfResult)) {
+            pdfBuffer = pdfResult
+        } else if (pdfResult instanceof Uint8Array || pdfResult instanceof ArrayBuffer || Array.isArray(pdfResult)) {
+            pdfBuffer = Buffer.from(pdfResult)
+        } else if (typeof pdfResult === 'string') {
+            throw new Error('Puppeteer a retourné une string au lieu d\'un Buffer')
+        } else {
+            throw new Error(`Puppeteer a retourné un type inattendu: ${typeof pdfResult}`)
+        }
+
+        // Vérification du buffer
+        if (!pdfBuffer || pdfBuffer.length === 0) {
+            throw new Error('Puppeteer a retourné un buffer vide ou invalide!')
+        }
+
+        // Vérifier que c'est bien un PDF valide
+        if (pdfBuffer.length < 4 || pdfBuffer[0] !== 0x25 || pdfBuffer[1] !== 0x50 || pdfBuffer[2] !== 0x44 || pdfBuffer[3] !== 0x46) {
+            throw new Error('Le PDF généré par Puppeteer est corrompu')
+        }
+
+        return pdfBuffer
 
     } catch (error) {
         if (error.message.includes('waiting for selector')) {

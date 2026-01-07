@@ -7,7 +7,6 @@ import {
     getMyCv,
     deleteMyCv
 } from '../controllers/cv.controller.js'
-import { cvToPdf } from '../controllers/pdf.controller.js'
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit'
 
 
@@ -28,7 +27,6 @@ const cvLimiter = rateLimit({
     },
 })
 
-router.post('/generate', authMiddleware, cvToPdf)
 router.post('/create', authMiddleware, createCv)
 router.get('/:slug', cvLimiter, findCvBySlug)
 router.post('/save', authMiddleware, saveCv)

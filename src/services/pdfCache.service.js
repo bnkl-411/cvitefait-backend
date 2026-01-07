@@ -1,61 +1,99 @@
-import { getRedisClient } from '../db/redis.js'
+import { getRedisClient } from '../config/redis.js'
 
 const PDF_CACHE_PREFIX = 'pdf:'
-const PDF_TTL = 1800 // 30 minutes
+const PDF_TTL = 1800
 
-// Cache un PDF buffer
 export const cachePdfBuffer = async (hash, buffer) => {
-    try {
-        const client = getRedisClient()
-        const key = `${PDF_CACHE_PREFIX}${hash}`
-        await client.setEx(key, PDF_TTL, buffer.toString('base64'))
-        console.log(`PDF mis en cache Redis: ${hash}`)
-    } catch (error) {
-        console.error('Erreur cache PDF:', error)
-        // Ne pas bloquer l'exécution si Redis échoue
+    if (!Buffer.isBuffer(buffer)) {
+        throw new Error('Le buffer passé à cachePdfBuffer n\'est pas un Buffer valide')
     }
-}
 
-// Récupère un PDF depuis le cache
-export const getCachedPdfBuffer = async (hash) => {
-    try {
-        const client = getRedisClient()
-        const key = `${PDF_CACHE_PREFIX}${hash}`
-        const cached = await client.get(key)
-
-        if (cached) {
-            console.log(`PDF trouvé dans Redis cache: ${hash}`)
-            return Buffer.from(cached, 'base64')
+    // Vérifier le header PDF avant conversion
+    if (buffer.length > 4) {
+        const isValidPdf = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46
+        if (!isValidPdf) {
+            throw new Error('Le buffer PDF est corrompu avant la mise en cache')
         }
-
-        return null
-    } catch (error) {
-        console.error('Erreur récupération cache PDF:', error)
-        return null
     }
+
+    const client = await getRedisClient()
+
+    if (!client.isOpen) {
+        throw new Error('Redis client not connected')
+    }
+
+    const key = `${PDF_CACHE_PREFIX}${hash}`
+    const base64 = buffer.toString('base64')
+
+    await client.set(key, base64, {
+        EX: PDF_TTL
+    })
+
+    // Vérification de l'intégrité
+    let verify = await client.get(key)
+    if (Buffer.isBuffer(verify)) {
+        verify = verify.toString('utf8')
+    } else if (typeof verify !== 'string') {
+        verify = String(verify)
+    }
+
+    if (base64 !== verify) {
+        throw new Error('Redis corrompt les données!')
+    }
+
+    const verifyBuffer = Buffer.from(verify, 'base64')
+    if (verifyBuffer.length !== buffer.length) {
+        throw new Error(`Corruption: ${buffer.length} → ${verifyBuffer.length}`)
+    }
+
+    console.log('[PDF] ✓ PDF mis en cache Redis')
 }
 
-// Invalide le cache pour un hash
+export const getCachedPdfBuffer = async (hash) => {
+    const client = await getRedisClient()
+    const key = `${PDF_CACHE_PREFIX}${hash}`
+
+    const exists = await client.exists(key)
+    if (exists !== 1) {
+        return null
+    }
+
+    let cached = await client.get(key)
+    if (!cached) {
+        return null
+    }
+
+    // Redis v5 peut retourner un Buffer au lieu d'une chaîne
+    if (Buffer.isBuffer(cached)) {
+        cached = cached.toString('utf8')
+    } else if (typeof cached !== 'string') {
+        cached = String(cached)
+    }
+
+    const buffer = Buffer.from(cached, 'base64')
+
+    // Vérifier que le buffer récupéré est un PDF valide
+    if (buffer.length > 4) {
+        const isValidPdf = buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46
+        if (!isValidPdf) {
+            // Cache corrompu, supprimer et forcer une nouvelle génération
+            await client.del(key)
+            return null
+        }
+    }
+
+    return buffer
+}
+
 export const invalidatePdfCache = async (hash) => {
-    try {
-        const client = getRedisClient()
-        const key = `${PDF_CACHE_PREFIX}${hash}`
-        await client.del(key)
-        console.log(`Cache PDF invalidé: ${hash}`)
-    } catch (error) {
-        console.error('Erreur invalidation cache PDF:', error)
-    }
+    const client = await getRedisClient()
+    const key = `${PDF_CACHE_PREFIX}${hash}`
+    await client.del(key)
 }
 
-// Vérifie si un PDF existe en cache
 export const pdfExistsInCache = async (hash) => {
-    try {
-        const client = getRedisClient()
-        const key = `${PDF_CACHE_PREFIX}${hash}`
-        const exists = await client.exists(key)
-        return exists === 1
-    } catch (error) {
-        console.error('Erreur vérification cache PDF:', error)
-        return false
-    }
+    const client = await getRedisClient()
+    const key = `${PDF_CACHE_PREFIX}${hash}`
+    const exists = await client.exists(key)
+    return exists === 1
 }

@@ -2,7 +2,7 @@ import express from 'express'
 import cookieParser from 'cookie-parser'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { connectRedis } from './db/redis.js';
+import { getRedisClient } from './config/redis.js';
 
 import cors from 'cors'
 import routes from './routes/index.js'
@@ -20,7 +20,7 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }))
 
-await connectRedis();
+await getRedisClient();
 
 app.use(cookieParser())
 

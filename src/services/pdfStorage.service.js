@@ -1,34 +1,37 @@
 import fs from 'fs/promises'
-import fsSync from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { generateHash } from './hash.service.js' // import du hash
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
 const uploadsDir = path.join(__dirname, '..', 'uploads')
 
-// Retourne le path si le PDF existe déjà pour ce hash
-export const getPdfPathIfExists = async (fullName, hash) => {
-    const safeName = fullName.replace(/\s+/g, '-')
-    const fileName = `CV-${safeName}-${hash}.pdf`
-    const filePath = path.join(uploadsDir, fileName)
-    if (fsSync.existsSync(filePath)) {
-        return filePath
+export const savePdf = async (pdfBuffer, fullName, baseUrl, hash) => {
+    if (!Buffer.isBuffer(pdfBuffer) || pdfBuffer.length === 0) {
+        throw new Error('Le buffer PDF n\'est pas valide')
     }
-    return null
-}
 
-// Sauvegarde le PDF et retourne l’URL publique
-export const savePdf = async (pdfBuffer, fullName, baseUrl, localStorageData, url) => {
-    const hash = generateHash(localStorageData, url)
+    // Vérifier le header PDF
+    const isValidPdf = pdfBuffer.length > 4 &&
+        pdfBuffer[0] === 0x25 &&
+        pdfBuffer[1] === 0x50 &&
+        pdfBuffer[2] === 0x44 &&
+        pdfBuffer[3] === 0x46
+
+    if (!isValidPdf) {
+        throw new Error('Le buffer PDF est corrompu (header invalide)')
+    }
+
     const safeName = fullName.replace(/\s+/g, '-')
     const fileName = `CV-${safeName}-${hash}.pdf`
     const filePath = path.join(uploadsDir, fileName)
 
     await fs.mkdir(uploadsDir, { recursive: true })
-    await fs.writeFile(filePath, pdfBuffer)
+    await fs.writeFile(filePath, pdfBuffer, { encoding: null })
 
-    return `${baseUrl}/uploads/${fileName}`
+    const fileUrl = `${baseUrl}/uploads/${fileName}`
+    console.log(`[PDF] ✓ Fichier sauvegardé: ${fileUrl}`)
+
+    return fileUrl
 }

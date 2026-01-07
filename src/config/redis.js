@@ -2,7 +2,7 @@ import { createClient } from 'redis'
 
 let redisClient
 
-export const getRedisClient = () => {
+export const getRedisClient = async () => {
     if (!redisClient) {
         redisClient = createClient({
             username: 'default',
@@ -12,19 +12,18 @@ export const getRedisClient = () => {
                 port: Number(process.env.REDIS_PORT),
             },
         })
-        console.log('Redis connected')
 
         redisClient.on('error', err => {
             console.error('Redis error:', err)
         })
+
+        await redisClient.connect()
+        console.log('Redis connected')
     }
 
     return redisClient
 }
 
 export const connectRedis = async () => {
-    const client = getRedisClient()
-    if (!client.isOpen) {
-        await client.connect()
-    }
+    return await getRedisClient()
 }

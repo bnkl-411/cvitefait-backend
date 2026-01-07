@@ -51,8 +51,8 @@ export const structuredCvData = async (req, res, next) => {
   try {
     const { rawText } = req.body;
 
-    const cacheKey = CacheService.generateKey('structure', rawText.trim().substring(0, 100));
-    const cached = CacheService.get(cacheKey);
+    // const cacheKey = CacheService.generateKey('structure', rawText.trim().substring(0, 100));
+    // const cached = CacheService.get(cacheKey);
 
     if (cached) {
       console.log(`✅ Cache HIT: ${cacheKey}`);
@@ -63,7 +63,7 @@ export const structuredCvData = async (req, res, next) => {
 
     const structured = await structureCV(rawText);
 
-    CacheService.set(cacheKey, structured, 2592000);
+    // CacheService.set(cacheKey, structured, 2592000);
 
     res.json({ data: structured, fromCache: false });
 
@@ -76,24 +76,24 @@ export const atsScore = async (req, res, next) => {
   try {
     const { cvData, jobDescription } = req.body;
 
-    const cacheKey = CacheService.generateKey(
-      'ats',
-      JSON.stringify(cvData).substring(0, 100),
-      jobDescription.substring(0, 100)
-    );
+    // const cacheKey = CacheService.generateKey(
+    // 'ats',
+    // JSON.stringify(cvData).substring(0, 100),
+    // jobDescription.substring(0, 100)
+    // );
 
-    const cached = CacheService.get(cacheKey);
+    // const cached = CacheService.get(cacheKey);
 
-    if (cached) {
-      console.log(`✅ Cache HIT: ${cacheKey}`);
-      return res.json({ ...cached, fromCache: true });
-    }
+    // if (cached) {
+    // console.log(`✅ Cache HIT: ${cacheKey}`);
+    // return res.json({ ...cached, fromCache: true });
+    // }
 
     console.log(`❌ Cache MISS: ${cacheKey}`);
 
     const analysis = await analyzeATS(cvData, jobDescription);
 
-    CacheService.set(cacheKey, analysis, 2592000);
+    // CacheService.set(cacheKey, analysis, 2592000);
 
     res.json({ ...analysis, fromCache: false });
 
