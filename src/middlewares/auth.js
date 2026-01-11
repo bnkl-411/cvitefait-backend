@@ -4,6 +4,7 @@ import { JWT_CONFIG } from '../config/jwt.js'
 export const authMiddleware = async (req, res, next) => {
     try {
         const token = req.cookies[JWT_CONFIG.cookie.name]
+
         if (!token) {
             return res.status(401).json({ error: 'Non authentifié' })
         }

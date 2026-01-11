@@ -13,7 +13,10 @@ export const generateCvPdf = async ({ token, slug, url, localStorageData, fullNa
     try {
         browser = await puppeteer.launch({
             headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox'
+            ]
         })
 
         const page = await browser.newPage()
@@ -24,15 +27,17 @@ export const generateCvPdf = async ({ token, slug, url, localStorageData, fullNa
             deviceScaleFactor: 3
         })
 
+        let domain = process.env.NODE_ENV === 'production' ? '.cvitefait.app' : 'localhost'
+
         // Configuration du cookie d'authentification
         await page.setCookie({
             name: JWT_CONFIG.cookie.name,
             value: token,
-            domain: 'localhost',
+            domain: domain,
             path: '/',
-            httpOnly: true,
-            secure: false,
-            sameSite: 'Lax'
+            secure: true,
+            httpOnly: false,
+            sameSite: 'strict'
         })
 
         // Écoute de la réponse d'authentification
@@ -43,7 +48,7 @@ export const generateCvPdf = async ({ token, slug, url, localStorageData, fullNa
 
         await page.goto(url, { waitUntil: 'domcontentloaded' })
 
-        // Vérification de l'authentification
+        // // Vérification de l'authentification
         await authPromise
 
         // Injection du localStorage

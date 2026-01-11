@@ -18,8 +18,6 @@ export const signup = async (req, res, next) => {
 
         const client = await pool.connect()
         try {
-            // await client.query('BEGIN')
-
             const userInsert = await client.query({
                 name: 'insert-user',
                 text: 'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id',
@@ -62,7 +60,7 @@ export const login = async (req, res, next) => {
             return res.status(400).json({ error: 'Email et mot de passe requis' })
         }
 
-        // ✅ Récupérer user + cv en même temps
+        // Récupérer user + cv en même temps
         const userQuery = await pool.query({
             name: 'fetch-user-cv-by-email',
             text: `SELECT u.id, u.email, u.password_hash, c.slug, c.data, c.updated_at 
@@ -91,7 +89,6 @@ export const login = async (req, res, next) => {
 
         res.cookie(JWT_CONFIG.cookie.name, token, JWT_CONFIG.cookie.options)
 
-        // ✅ Retourner les données pour le frontend
         res.json({
             user: {
                 id: user.id,
@@ -114,7 +111,7 @@ export const logout = async (req, res) => {
 
 export const getMe = async (req, res, next) => {
     try {
-        // ✅ Récupérer user + cv complet
+        // Récupérer user + cv complet
         const userQuery = await pool.query({
             name: 'fetch-user-cv-by-id',
             text: `SELECT u.id, u.email, u.created_at, c.slug, c.data, c.updated_at 
@@ -130,7 +127,7 @@ export const getMe = async (req, res, next) => {
             return res.status(404).json({ error: 'Utilisateur non trouvé' })
         }
 
-        // ✅ Retourner dans le format attendu par le frontend
+        // Retourner dans le format attendu par le frontend
         res.json({
             id: user.id,
             email: user.email,
