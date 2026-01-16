@@ -2,7 +2,7 @@ import fs from 'fs'
 import { JWT_CONFIG } from '../config/jwt.js'
 import { generateCvPdf } from '../services/cvToPdf.service.js'
 import { savePdf } from '../services/pdfStorage.service.js'
-import { createPdfExport } from '../services/pdfExport.service.js'
+import { inDbCreatePdfExport } from '../services/pdfExport.service.js'
 import { generateHash } from '../services/hash.service.js'
 // import { getCachedPdfBuffer, cachePdfBuffer } from '../services/pdfCache.service.js'
 import { uploadPDF, pdfExists, getPDF } from '../services/r2PdfCache.service.js'
@@ -11,22 +11,26 @@ import { getRedisClient } from '../config/redis.js';
 
 export const cvToPdf = async (req, res, next) => {
     const token = req.cookies?.[JWT_CONFIG.cookie.name]
-    const { slug, url, localStorage, fullName, action, cvId } = req.body
+    const { slug, url, localStorage, fullName, action } = req.body
 
     try {
-        console.log(new Date().toLocaleString())
-        console.log(`[PDF] Génération PDF - User: ${fullName}, Action: ${action}`)
+        console.log(`[PDF] ${new Date().toLocaleString()} - User: ${fullName}, Action: ${action}`)
 
+        // 1. Générer hash et key
         const hash = generateHash(localStorage, url)
-        const key = `pdfs/${hash}.pdf`
+        const key = `CV-${fullName.replace(/\s+/g, '-')}-${hash}.pdf`
 
         let pdfBuffer
 
-        const exists = await pdfExists(key)
+        // 2. Vérifier si le fichier existe sur R2
+        const existsOnR2 = await pdfExists(key)
 
-        if (!exists) {
-            console.log('[PDF] Cache non trouvé, génération avec Puppeteer...')
-
+        if (existsOnR2) {
+            console.log('[PDF] ✓ Cache R2 trouvé')
+            const stream = await getPDF(key)
+            pdfBuffer = Buffer.from(await stream.transformToByteArray())
+        } else {
+            console.log('[PDF] Génération du PDF...')
             pdfBuffer = await generateCvPdf({
                 token,
                 slug,
@@ -34,34 +38,21 @@ export const cvToPdf = async (req, res, next) => {
                 localStorageData: localStorage,
                 fullName,
             })
-
-            console.log('[PDF] ✓ PDF généré')
-
+            console.log('[PDF] ✓ Upload sur R2...')
             await uploadPDF(pdfBuffer, key)
-        } else {
-            const stream = await getPDF(key)
-            pdfBuffer = Buffer.from(await stream.transformToByteArray())
         }
-
-        const baseUrl = `${req.protocol}://${req.get('host')}`
-        const fileUrl = await savePdf(
-            pdfBuffer,
-            fullName,
-            baseUrl,
-            hash
-        )
 
         if (action === 'store') {
-            const r2Key = `CV-${fullName.replace(/\s+/g, '-')}-${hash}.pdf`
-            const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
 
-            if (cvId) {
-                await createPdfExport(cvId, r2Key, fileUrl, expiresAt)
-            }
-
-            return res.json({ url: fileUrl })
+            return res.json({
+                url: publicUrl,
+                key,
+                cached: existsOnR2
+            })
         }
 
+        // Action 'download'
         res.set({
             'Content-Type': 'application/pdf',
             'Content-Disposition': `attachment; filename=CV-${fullName.replace(/\s+/g, '-')}.pdf`,

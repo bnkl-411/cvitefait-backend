@@ -1,7 +1,7 @@
 import pool from '../db/database.js'
 import { insertPdfExport, findPdfExportByCvId, updateAccessCount } from '../repositories/pdf.repository.js'
 
-export const createPdfExport = async ({ cvId, r2Key, publicUrl, expiresAt }) => {
+export const inDbCreatePdfExport = async ({ cvId, r2Key, publicUrl, expiresAt }) => {
     const result = await pool.query(insertPdfExport, [cvId, r2Key, publicUrl, expiresAt])
     return result.rows[0]
 }
