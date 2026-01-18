@@ -1,17 +1,21 @@
-import pool from '../db/database.js'
-import { insertPdfExport, findPdfExportByCvId, updateAccessCount } from '../repositories/pdf.repository.js'
+import { findActiveUserPdf, insertPdfExport, findPdfExportByCvId, updateAccessCount } from '../repositories/pdf.repository.js'
 
-export const inDbCreatePdfExport = async ({ cvId, r2Key, publicUrl, expiresAt }) => {
-    const result = await pool.query(insertPdfExport, [cvId, r2Key, publicUrl, expiresAt])
+export const inDbCreatePdfExport = async ({ cvId, r2Key, publicUrl }) => {
+    const result = await insertPdfExport({ cvId, r2Key, publicUrl })
     return result.rows[0]
 }
 
-export const getPdfExportByCvId = async (cvId) => {
-    const result = await pool.query(findPdfExportByCvId, [cvId])
+export const inDbFindActiveUserPdf = async (userId, templateId) => {
+    const result = await findActiveUserPdf(userId, templateId)
+    return result.rows
+}
+
+export const inDbFindPdfExportByCvId = async (cvId) => {
+    const result = await findPdfExportByCvId(cvId)
     return result.rows[0]
 }
 
-export const incrementAccessCount = async (cvId) => {
-    const result = await pool.query(updateAccessCount, [cvId])
-    return result.rows[0]
+export const inDbUpdateAccessCount = async (cvId) => {
+    const result = await updateAccessCount(cvId)
+    return result.rows[0]?.access_count
 }

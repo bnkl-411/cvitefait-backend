@@ -1,4 +1,3 @@
-import fs from 'fs'
 import { JWT_CONFIG } from '../config/jwt.js'
 import { generateCvPdf } from '../services/cvToPdf.service.js'
 import { savePdf } from '../services/pdfStorage.service.js'
@@ -45,11 +44,18 @@ export const cvToPdf = async (req, res, next) => {
         if (action === 'store') {
             const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`
 
+            await inDbCreatePdfExport({
+                cvId: slug,
+                r2Key: key,
+                publicUrl
+            })
+
             return res.json({
                 url: publicUrl,
                 key,
                 cached: existsOnR2
             })
+
         }
 
         // Action 'download'
